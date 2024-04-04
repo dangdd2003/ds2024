@@ -19,9 +19,9 @@ void send_file(FILE *fp, int sockfd) {
   }
 }
 
-int main() {
+int main(int argc, char **argv) {
   char *ip = "127.0.0.1";
-  int port = 8080;
+  int port = 5000;
   int e;
 
   int sockfd;
@@ -50,7 +50,7 @@ int main() {
   printf("[+]Connected to Server.\n");
 
   // open file
-  fp = fopen(filename, "r");
+  fp = fopen(argv[1], "r");
   if (fp == NULL) {
     perror("[-]Error in reading file");
     exit(1);
@@ -62,6 +62,7 @@ int main() {
 
   // close the connection
   printf("[+]Closing the connection.\n");
+  fclose(fp);
   close(sockfd);
 
   return 0;

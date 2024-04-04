@@ -18,13 +18,13 @@ gcc client.c -o client.out
 - Open server
 
 ```bash
-./server.out
+./server.out {output filename}
 ```
 
 - Run client to send `send.txt` file
 
 ```bash
-./client.out
+./client.out {input file}
 ```
 
 - Data from file `send.txt` will be written to `receive.txt` in server socket
