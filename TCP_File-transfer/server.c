@@ -1,82 +1,118 @@
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
-#define SIZE 1024
+#define PORT 5000
 
-// read and write file from socket buffer
-void write_file(int sockfd, char *filename) {
-  if (filename == NULL) {
-    filename = "recieve.txt";
-  }
+// open chat function
+void chat(int newsockfd) {
+  char buff[1000];
   int n;
-  FILE *fp;
-  char buffer[SIZE];
-
-  fp = fopen(filename, "w");
-  while (1) {
-    n = recv(sockfd, buffer, SIZE, 0);
-    if (n <= 0) {
+  for (;;) {
+    bzero(buff, sizeof(buff));
+    read(newsockfd, buff, sizeof(buff));
+    printf("From client: %s", buff);
+    if (strncmp(buff, "exit", 4) == 0) {
+      printf("[-] Client stop receiving message!\n");
       break;
-      return;
     }
-    fprintf(fp, "%s", buffer);
-    bzero(buffer, SIZE);
+    bzero(buff, sizeof(buff));
+    printf("[+] Entter message to client: ");
+    n = 0;
+    while ((buff[n++] = getchar()) != '\n')
+      ;
+    write(newsockfd, buff, sizeof(buff));
+    if (strncmp("exit", buff, 4) == 0) {
+      bzero(buff, sizeof(buff));
+      printf("[-] Server exit!");
+      break;
+    }
   }
-  return;
 }
 
-int main(int argc, char **argv) {
-  char *ip = "127.0.0.1";
-  int port = 5000;
-  int e;
-
-  int sockfd, new_sock;
-  struct sockaddr_in server_addr, new_addr;
-  socklen_t addr_size;
-  char buffer[SIZE];
-
-  // inti socket
-  sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd < 0) {
-    perror("[-]Error in socket");
-    exit(1);
+// writing file function
+void write_file(int sockfd, char *filename) {
+  if (filename == NULL) {
+    filename = "received.txt";
   }
-  printf("[+]Server socket created successfully.\n");
-
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = port;
-  server_addr.sin_addr.s_addr = inet_addr(ip);
-
-  // bind socket - open server
-  e = bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-  if (e < 0) {
-    perror("[-]Error in bind");
-    exit(1);
+  int n;
+  char buff[1024];
+  FILE *fp = fopen(filename, "w");
+  while (1) {
+    n = recv(sockfd, buff, sizeof(buff), 0);
+    if (n == 0) {
+      perror("[+] Writing file");
+      close(sockfd);
+      break;
+    } else {
+      fprintf(fp, "%s", buff);
+      bzero(buff, sizeof(buff));
+    }
   }
-  printf("[+]Binding successfull.\n");
+  printf("[+] Successfully writing file\n");
+  fclose(fp);
+}
 
-  // listen to the socket
-  if (listen(sockfd, 10) == 0) {
-    printf("[+]Listening....\n");
+int main(int argc, char *argv[]) {
+  const char *ip = "127.0.0.1";
+
+  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+  // initialize socket
+  struct sockaddr_in servaddr, newaddr;
+  if (sockfd == -1) {
+    perror("[-] Error in creating socket");
+    exit(EXIT_FAILURE);
   } else {
-    perror("[-]Error in listenning.");
-    exit(1);
+    printf("[+] Successfully creating socket\n");
+  }
+  bzero(&servaddr, sizeof(servaddr));
+
+  // assign IP, PORT to socket
+  servaddr.sin_family = AF_INET;
+  servaddr.sin_addr.s_addr = inet_addr(ip);
+  servaddr.sin_port = htons(5000);
+
+  // bind ip/port to socket
+  if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) == -1) {
+    perror("[-] Error in binding");
+    close(sockfd);
+    exit(EXIT_FAILURE);
+  } else {
+    printf("[+] Successfully binding to socket\n");
   }
 
-  // write file
-  addr_size = sizeof(new_addr);
-  new_sock = accept(sockfd, (struct sockaddr *)&new_addr, &addr_size);
-  write_file(new_sock, argv[1]);
-  printf("[+]Data written in the file successfully.\n");
+  // listen to remote host
+  if (listen(sockfd, 10) == -1) {
+    perror("[-] Error in starting listening remote host");
+    close(sockfd);
+    exit(EXIT_FAILURE);
+  } else {
+    printf("[+] Listening to remote host ... \n");
+  }
 
-  // close the connection
-  printf("[+]Closing the connection.\n");
+  // accept the data from client
+  socklen_t addr_size = sizeof(newaddr);
+  int newsockfd = accept(sockfd, (struct sockaddr *)&newaddr, &addr_size);
+  if (newsockfd == -1) {
+    perror("[-] Error in receiving data from remote host");
+    close(sockfd);
+    close(newsockfd);
+    exit(EXIT_FAILURE);
+  } else {
+    printf("[+] Successfully creating connection to client\n");
+    printf("==================================================\n");
+    // chat(newsockfd);
+    write_file(newsockfd, argv[1]);
+  }
+
   close(sockfd);
-  close(new_sock);
+  close(newsockfd);
 
   return EXIT_SUCCESS;
 }
