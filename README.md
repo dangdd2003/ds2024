@@ -9,4 +9,4 @@ Students are expected to:
 
 - Student Name: Doan Dinh Dang
 - Student ID: BI12-074
-- Student Group ID: G2
+- Student Group ID: G1
