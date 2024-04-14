@@ -1,4 +1,4 @@
-#include "filetrans.h"
+#include "file.h"
 #include <rpc/clnt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
   }
   fclose(file);
 
-  printf("FIle sent: %s\n", buff.name);
+  printf("File sent: %s\n", buff.name);
   printf("Byte sent: %ld\n", total_byte);
 
   return EXIT_SUCCESS;
